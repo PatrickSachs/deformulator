@@ -2,7 +2,7 @@
 
 A prototype for a Beam VM decompiler.
 
-Since I was unable to find a decompiler for the BEAM VM that does more that just extract `debug_info` from the beam files (which are typically not available since they are stripped for non development builds) this is very basic decompiler that attemps to actually decompile the bytecode the Elixir pseduo-code.
+Since I was unable to find a decompiler for the Beam VM that does more that just extract `debug_info` from the beam files (which are typically not available since they are stripped for non development builds) this is very basic decompiler that attemps to actually decompile the bytecode.
 
 ## Installation
 
@@ -10,7 +10,7 @@ For now, pull it and run it in IEx.
 
 ## Usage
 
-First a .beam file needs to be converted from its binary format into erlang terms. This is a fairly straight forward process.
+First a .beam file needs to be converted from its binary format into Erlang terms. This is a fairly straight forward process.
 
 I've provided a helper function to make this as easy as possible:
 
@@ -36,7 +36,7 @@ parsed |> to_string() |> IO.puts()
 
 * The Beam VM is register based, which doesn't map overly nice to decompile it back to a functional language. I've decided to go with an approach that initially assumes that every register is a variable and then tries to optimize these variables away as much as possible without causing side effects.
 * The Beam VM has almost no control strctures left in tact (It's essentially goto spaghetti code). To decompile this back into familiar looking statements I am matching on known patterns to transform it back into something similar it started as.
-* I've found that the Beam VM isn't too well doucmented. The often referred to ["Beam Book"](https://blog.stenmans.org/theBeamBook/#AP-Instructions) lacks documentation for a lot of instructions, and the ones that are documented are often hard to understand for someone not yet deeply familiar with the VM.
+* I've found that the Beam VM isn't too well documented. The often referred to ["Beam Book"](https://blog.stenmans.org/theBeamBook/#AP-Instructions) lacks documentation for a lot of instructions, and the ones that are documented are often hard to understand for someone not yet deeply familiar with the VM.
 
 ## Example
 
@@ -62,7 +62,7 @@ Let's compile it.
 erlc github_demo.erl
 ```
 
-Now we have the `github_demo.beam` file. Let's launch the Deformulator (`iex -S mix` in the cloned project directory) to decompile the fileagain:
+Now we have the `github_demo.beam` file. Let's launch the Deformulator (`iex -S mix` in the cloned project directory) to decompile the file again:
 
 ```elixir
 iex> {:ok, beam} = Deformulator.Loader.load_beam_file("./priv/github_demo.beam")
@@ -87,7 +87,7 @@ iex> decompiled = Deformulator.parse(beam)
 # [...]
 ```
 
-Well this sure is a wall of text! We get an Elixir representation of the beam file, already broken down into the instructions as (the decompiler guessed) they were written in the code file. If someone were to write a tool that would analyze beam files progrmatically, this would be the output they'd use.
+Well this sure is a wall of text! We get an Elixir representation of the beam file, already broken down into the instructions as (the decompiler guessed) they were written in the code file. If someone were to write a tool that would analyze beam files programatically, this would be the output they'd use.
 
 But since we are just meatbags, let's convert it to a textual representation:
 
@@ -117,15 +117,15 @@ This looks like a close approximation of what our source code looked like. Notea
   * The case on the Age binding is done differently now
   * The bindings have funky names
 
-The pseducode is currently a replacer. I plan to end up decompiling to Erlang source code (no Elixir since it's nearly impossible to revert macros back into their original state), but for now this serves a proof of concept. 
+The pseducode is currently a placeholder. I plan to end up decompiling to Erlang source code (no Elixir since it's nearly impossible to revert macros back into their original state), but for now this serves a proof of concept. 
 
-The binding is caused due to the BEAM essentially only having a single control structure `test`, which tests based on boolean values. There are plans to convert some of these control stuctures back into their original values by mapping on known patterns.
+The binding is caused due to the Beam essentially only having a single control structure `test`, which tests based on boolean values. There are plans to convert some of these control stuctures back into their original values by mapping on known patterns.
 
-And the binding names are due to the compiled code not retaining the original value names. There are plans to guess variable names based on the functions the call, etc. but for now this is out of scope and the variables are simply named after the register they are stored in.
+And the binding names are due to the compiled code not retaining the original value names. There are plans to guess variable names based on the functions they call, etc. but for now this is out of scope and the variables are simply named after the register they are stored in.
 
 ## Contributing
 
-Since this project is in its infancy and I am far from an expert in the BEAM VM contributions in all forms are appreciated.
+Since this project is in its infancy and I am far from an expert in the Beam VM contributions in all forms are appreciated.
 
 Please check the issues section of this GitHub repo or feel free to tackle anything descibed as "planned" in this readme.
 
