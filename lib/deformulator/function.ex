@@ -51,6 +51,7 @@ defmodule Deformulator.Function do
   """
   def parse(bytecode) do
     {:function, name, arity, start_label, inner_bytecode} = bytecode
+    IO.inspect(name, label: "functions")
     {register, param_vars} = insert_argument_register(%Deformulator.Register{}, arity)
     fun = %Deformulator.Function{
       name: name,
@@ -221,6 +222,13 @@ defmodule Deformulator.Function do
     {reg, var} = Deformulator.Register.create_parameter(reg, current)
     {reg, vars} = insert_argument_register(reg, arity, current + 1)
     {reg, [var | vars]}
+  end
+
+  defimpl Deformulator.VariableCounter, for: Deformulator.Function do
+    def count(fun) do
+      Deformulator.VariableCounter.count(fun.expressions)
+        ++ Enum.map(fun.parameters, &({&1, :write}))
+    end
   end
 
   defimpl String.Chars, for: Deformulator.Function do

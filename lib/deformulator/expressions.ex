@@ -149,6 +149,20 @@ defmodule Deformulator.Expressions do
     }
     parse(ctx, next, [expr | acc])
   end
+  # Tuple element
+  def parse(ctx, [{:get_tuple_element, source, element, target} | next], acc) do
+    var_source = parse_variable_source(source, ctx.register)
+    {reg, var_target} = Deformulator.Register.create_variable(ctx.register, target)
+    expr = %Deformulator.Expressions.Bind{
+      target: var_target,
+      source: %Deformulator.Expressions.CallMfa{
+        module: :erlang,
+        function: :element,
+        arguments: [var_source, element]
+      }
+    }
+    parse(%Context{ctx | register: reg}, next, [expr | acc])
+  end
   # A native function call
   # {:gc_bif, :bit_size, {:f, 0}, 2, [x: 0], {:x, 2}},
   def parse(ctx, [{:gc_bif, function, _unknown, _preserve_registers, arguments, result_register} | next], acc) do
@@ -193,12 +207,7 @@ defmodule Deformulator.Expressions do
     #IEx.pry
 
     case_expr = %Deformulator.Expressions.Case{
-      expression: %Deformulator.Expressions.CallMfa{
-        module: :erlang,
-        function: function,
-        arity: length(arguments),
-        arguments: arguments |> Enum.map(&(&1 |> parse_variable_source(ctx.register)))
-      },
+      expression: parse_test_function(ctx, function, arguments),
       branches: [
         %Deformulator.Expressions.Case.Branch{
           guard: %Deformulator.Expressions.Literal{ value: true },
@@ -232,10 +241,40 @@ defmodule Deformulator.Expressions do
     finalize_parsing(ctx, acc)
   end
   def parse(ctx, [unknown | next], acc) do
+    IO.inspect(unknown, label: "unknown expression")
     expr = %Deformulator.Expressions.Unknown{
       raw: unknown
     }
     parse(ctx, next, [expr | acc])
+  end
+
+  defp parse_test_function(ctx, :test_arity, [arg1, arity]) do
+    %Deformulator.Expressions.CallMfa{
+      module: :erlang,
+      function: :strict_equals,
+      arity: 2,
+      arguments: [
+        %Deformulator.Expressions.CallMfa{
+          module: :erlang,
+          function: :tuple_size,
+          arity: 1,
+          arguments: [
+            parse_variable_source(arg1, ctx.register)
+          ]
+        },
+        %Deformulator.Expressions.Literal{
+          value: arity
+        }
+      ]
+    }
+  end
+  defp parse_test_function(ctx, function, arguments) do
+    %Deformulator.Expressions.CallMfa{
+      module: :erlang,
+      function: function,
+      arity: length(arguments),
+      arguments: arguments |> Enum.map(&(parse_variable_source(&1, ctx.register)))
+    }
   end
 
   @doc """
@@ -261,7 +300,14 @@ defmodule Deformulator.Expressions do
   def parse_variable_source({:literal, literal}, _reg), do: %Deformulator.Expressions.Literal{ value: literal }
   def parse_variable_source({:integer, integer}, _reg), do: %Deformulator.Expressions.Literal{ value: integer }
   def parse_variable_source({:atom, atom}, _reg), do: %Deformulator.Expressions.Literal{ value: atom }
-  def parse_variable_source(register, reg), do: %Deformulator.Expressions.Binding{ var: Deformulator.Register.find_variable!(reg, register) }
+  def parse_variable_source(nil, _reg), do: %Deformulator.Expressions.Binding{ var: "_nil" }
+  def parse_variable_source(register, reg) do
+    IO.inspect(register, label: "parse_variable_source")
+    case Deformulator.Register.find_variable(reg, register) do
+      nil -> %Deformulator.Expressions.Binding{ var: "_unknown@#{inspect register}" }
+      var -> %Deformulator.Expressions.Binding{ var: var }
+    end
+  end
 
   defp finalize_parsing(ctx, exprs), do: {ctx, Enum.reverse(exprs)}
 

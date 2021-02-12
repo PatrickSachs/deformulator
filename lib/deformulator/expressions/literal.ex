@@ -6,4 +6,8 @@ defmodule Deformulator.Expressions.Literal do
       Kernel.inspect(exp.value)
     end
   end
+
+  defimpl Deformulator.VariableCounter, for: Deformulator.Expressions.Literal do
+    def count(_), do: []
+  end
 end
